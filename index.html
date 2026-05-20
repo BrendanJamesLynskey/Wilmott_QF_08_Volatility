@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wilmott QF 08 &mdash; Overview of Volatility Modeling</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a; --bg-card: #0d1117; --bg-code: #161b22;
+            --text-primary: #e6edf3; --text-secondary: #8b949e;
+            --accent: #fbbf24; --accent-dim: #fbbf2444; --accent-glow: #fbbf2433;
+            --accent-2: #f472b6; --accent-3: #a78bfa; --accent-4: #34d399;
+            --accent-5: #60a5fa;
+            --border: #21262d;
+            --font-display: 'Space Grotesk', sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+            --font-body: 'Inter', sans-serif;
+            --max-width: 900px;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body { background: var(--bg-primary); color: var(--text-primary); font-family: var(--font-body); font-size: 17px; line-height: 1.7; overflow-x: hidden; }
+        .hero { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 2rem 1.5rem; text-align: center; position: relative; }
+        .hero::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 700px; height: 600px; background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%); pointer-events: none; z-index: 0; }
+        .hero > * { position: relative; z-index: 1; }
+        .series-label { font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent); letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 1rem; }
+        .hero h1 { font-family: var(--font-display); font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 700; color: var(--text-primary); line-height: 1.2; margin-bottom: 1rem; }
+        .hero h1 .accent { color: var(--accent); }
+        .hero .subtitle { font-size: 1.1rem; color: var(--text-secondary); max-width: 640px; margin-bottom: 2rem; }
+        .tags { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; margin-bottom: 2.5rem; }
+        .tag { font-family: var(--font-mono); font-size: 0.75rem; padding: 0.25rem 0.75rem; border-radius: 999px; border: 1px solid var(--accent); color: var(--accent); background: var(--accent-dim); white-space: nowrap; }
+        .pipeline { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.25rem; margin-bottom: 1rem; max-width: var(--max-width); }
+        .pipeline-step { font-family: var(--font-mono); font-size: 0.7rem; padding: 0.3rem 0.7rem; background: var(--bg-card); border: 1px solid var(--border); border-radius: 4px; color: var(--text-secondary); white-space: nowrap; }
+        .pipeline-arrow { color: var(--accent); font-size: 0.9rem; font-weight: 700; }
+        .slide { min-height: 100vh; max-width: var(--max-width); margin: 0 auto; padding: 4rem 1.5rem; position: relative; display: flex; flex-direction: column; justify-content: center; }
+        .slide-number { font-family: var(--font-display); font-size: 5rem; font-weight: 700; color: var(--accent-dim); position: absolute; top: 2rem; right: 1.5rem; line-height: 1; user-select: none; }
+        .slide h2 { font-family: var(--font-display); font-size: 1.9rem; font-weight: 700; color: var(--accent); margin-bottom: 1.5rem; line-height: 1.25; }
+        .slide h3 { font-family: var(--font-display); font-size: 1.3rem; font-weight: 600; color: var(--text-primary); margin-top: 1.5rem; margin-bottom: 0.75rem; }
+        .slide p { margin-bottom: 1rem; color: var(--text-secondary); }
+        .slide p strong { color: var(--text-primary); }
+        .slide ul, .slide ol { margin-bottom: 1rem; padding-left: 1.5rem; color: var(--text-secondary); }
+        .slide li { margin-bottom: 0.4rem; }
+        .slide li strong { color: var(--text-primary); }
+        .slide code { background: var(--bg-code); padding: 0.1rem 0.35rem; border-radius: 3px; font-family: var(--font-mono); font-size: 0.85em; color: var(--accent); }
+        .diagram-grid { display: grid; gap: 0.75rem; margin: 1.5rem 0; padding: 1.5rem; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; }
+        .diagram-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+        .diagram-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+        .diagram-grid.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+        .diagram-panel { padding: 1rem; background: var(--bg-code); border: 1px solid var(--border); border-radius: 6px; }
+        .diagram-panel.accent-border { border-left: 3px solid var(--accent); }
+        .diagram-panel.r { border-left: 3px solid var(--accent-2); }
+        .diagram-panel.p { border-left: 3px solid var(--accent-3); }
+        .diagram-panel.g { border-left: 3px solid var(--accent-4); }
+        .diagram-panel.b { border-left: 3px solid var(--accent-5); }
+        .diagram-panel h4 { font-family: var(--font-display); font-size: 1rem; color: var(--accent); margin-bottom: 0.5rem; }
+        .diagram-panel.r h4 { color: var(--accent-2); }
+        .diagram-panel.p h4 { color: var(--accent-3); }
+        .diagram-panel.g h4 { color: var(--accent-4); }
+        .diagram-panel.b h4 { color: var(--accent-5); }
+        .diagram-panel p, .diagram-panel ul { font-size: 0.9rem; }
+        .callout { background: var(--bg-card); border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0; padding: 1rem 1.25rem; margin: 1.25rem 0; }
+        .callout p { margin-bottom: 0; }
+        .callout .callout-label { font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.3rem; }
+        .quote { font-family: var(--font-display); font-size: 1.1rem; font-style: italic; color: var(--text-primary); padding: 1rem 1.5rem; border-left: 3px solid var(--accent); background: var(--bg-card); margin: 1.25rem 0; border-radius: 0 8px 8px 0; }
+        .quote .attr { display: block; margin-top: 0.5rem; font-style: normal; font-size: 0.85rem; color: var(--text-secondary); font-family: var(--font-mono); }
+        .canvas-wrap { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin: 1.25rem 0; overflow-x: auto; }
+        .canvas-wrap canvas, .canvas-wrap svg { display: block; margin: 0 auto; max-width: 100%; }
+        .control-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin: 1.25rem 0; }
+        .control-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
+        .control-row label { font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-secondary); min-width: 160px; }
+        .control-row input[type="range"] { flex: 1; min-width: 150px; accent-color: var(--accent); }
+        .control-row select, .control-row input[type="number"] { background: var(--bg-code); border: 1px solid var(--border); color: var(--text-primary); border-radius: 4px; padding: 0.3rem 0.5rem; font-family: var(--font-mono); font-size: 0.8rem; }
+        .control-row .val { font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent); min-width: 80px; text-align: right; }
+        .btn { font-family: var(--font-mono); font-size: 0.8rem; padding: 0.4rem 0.9rem; background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; cursor: pointer; transition: background 0.15s ease; }
+        .btn:hover { background: rgba(251,191,36,0.25); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn.secondary { background: var(--bg-code); color: var(--text-secondary); border-color: var(--border); }
+        .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.5rem; margin-top: 0.75rem; }
+        .metric { background: var(--bg-code); border: 1px solid var(--border); border-radius: 6px; padding: 0.6rem 0.8rem; text-align: center; }
+        .metric .metric-label { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.08em; }
+        .metric .metric-value { font-family: var(--font-display); font-size: 1.25rem; color: var(--accent); font-weight: 600; margin-top: 0.2rem; }
+        .contents-list { list-style: none; padding-left: 0; counter-reset: contents; }
+        .contents-list li { counter-increment: contents; padding: 0.6rem 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 1rem; }
+        .contents-list li:last-child { border-bottom: none; }
+        .contents-list li::before { content: counter(contents, decimal-leading-zero); font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent); min-width: 2rem; }
+        .contents-list a { color: var(--text-primary); text-decoration: none; }
+        .contents-list a:hover { color: var(--accent); }
+        .footer { text-align: center; padding: 3rem 1.5rem; color: var(--text-secondary); font-size: 0.85rem; border-top: 1px solid var(--border); max-width: var(--max-width); margin: 0 auto; }
+        .footer a { color: var(--accent); text-decoration: none; }
+        .katex { color: var(--text-primary); }
+        .katex-display { margin: 1rem 0; overflow-x: auto; overflow-y: hidden; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin: 1rem 0; }
+        th { background: var(--bg-code); color: var(--accent); font-weight: 600; text-align: left; padding: 0.6rem 0.85rem; border-bottom: 1px solid var(--border); font-family: var(--font-display); }
+        td { padding: 0.5rem 0.85rem; border-bottom: 1px solid var(--border); color: var(--text-secondary); vertical-align: top; }
+        tr:last-child td { border-bottom: none; }
+        tr:nth-child(even) td { background: rgba(13, 17, 23, 0.5); }
+        @media (max-width: 640px) {
+            .slide { padding: 3rem 1rem; min-height: auto; }
+            .slide-number { font-size: 3rem; top: 1.5rem; right: 1rem; }
+            .slide h2 { font-size: 1.5rem; }
+            .diagram-grid.cols-2, .diagram-grid.cols-3, .diagram-grid.cols-4 { grid-template-columns: 1fr; }
+            .hero h1 { font-size: 1.8rem; }
+        }
+    </style>
+</head>
+<body>
+
+<header class="hero">
+    <div class="series-label">Paul Wilmott Introduces Quantitative Finance &mdash; Deck 08</div>
+    <h1>Overview of <span class="accent">Volatility</span> Modeling</h1>
+    <p class="subtitle">Four kinds of volatility, the empirical surface, and the families of model &mdash; deterministic, stochastic, uncertain &mdash; that try to explain what one number can't.</p>
+
+    <div class="tags">
+        <span class="tag">historical</span><span class="tag">implied</span>
+        <span class="tag">GARCH</span><span class="tag">EWMA</span>
+        <span class="tag">smile</span><span class="tag">Dupire</span>
+        <span class="tag">Heston</span><span class="tag">uncertain vol</span>
+    </div>
+
+    <div class="pipeline">
+        <span class="pipeline-step">returns $r_i$</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">historical $\hat\sigma$</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">implied $\sigma_{\text{imp}}(K,T)$</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">smile / surface</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">local / stochastic vol</span>
+    </div>
+</header>
+
+<section class="slide" id="slide-00">
+    <div class="slide-number">00</div>
+    <h2>Topics We'll Cover</h2>
+    <ul class="contents-list">
+        <li><a href="#slide-01">The four kinds of volatility</a></li>
+        <li><a href="#slide-02">Historical estimation</a></li>
+        <li><a href="#slide-03">GARCH and EWMA &mdash; vol clustering</a></li>
+        <li><a href="#slide-04">Range-based estimators</a></li>
+        <li><a href="#slide-05">Implied volatility &mdash; invert Black&ndash;Scholes</a></li>
+        <li><a href="#slide-06">Skews and smiles</a></li>
+        <li><a href="#slide-07">Deterministic local volatility &mdash; Dupire</a></li>
+        <li><a href="#slide-08">Stochastic volatility &mdash; Heston and friends</a></li>
+        <li><a href="#slide-09">Uncertain volatility &mdash; best/worst-case pricing</a></li>
+        <li><a href="#slide-10">Interactive: implied volatility smile explorer</a></li>
+    </ul>
+</section>
+
+<section class="slide" id="slide-01">
+    <div class="slide-number">01</div>
+    <h2>The Four Kinds of Volatility</h2>
+    <p>Black&ndash;Scholes asks for "the" volatility as if it were a single number. The market does not oblige. Wilmott opens chapter 9 by sorting out the four distinct things people mean by the word.</p>
+
+    <div class="diagram-grid cols-2">
+        <div class="diagram-panel accent-border">
+            <h4>Actual volatility</h4>
+            <p>The instantaneous standard deviation of returns of the real asset at the present moment. Not observable, not even well-defined except as a limit. The thing models try to describe.</p>
+        </div>
+        <div class="diagram-panel g">
+            <h4>Historical / realised volatility</h4>
+            <p>A statistic computed from the past path of $S$: $\hat\sigma$ from sample standard deviation of log-returns over a window. Backward-looking, observable, noisy.</p>
+        </div>
+        <div class="diagram-panel p">
+            <h4>Implied volatility</h4>
+            <p>The number you plug into Black&ndash;Scholes to recover the observed market price of an option. Forward-looking, derived, contract-specific &mdash; the market's <em>opinion</em>.</p>
+        </div>
+        <div class="diagram-panel b">
+            <h4>Forward volatility</h4>
+            <p>The volatility that, between two future dates $T_1$ and $T_2$, is consistent with the implied vols out to each. Important for forward-starting and cliquet-style contracts.</p>
+        </div>
+    </div>
+
+    <div class="callout">
+        <div class="callout-label">The central puzzle</div>
+        <p>All four would be equal in a world where Black&ndash;Scholes were exactly true. In the real world they disagree, and the disagreement is structured &mdash; in $K$ (smile), in $T$ (term structure), and over time. The rest of the chapter is a tour of model families that try to absorb that structure.</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-02">
+    <div class="slide-number">02</div>
+    <h2>Historical Estimation</h2>
+    <p>The simplest estimator. Take $n$ consecutive log-returns from daily closes,</p>
+    <p>$$r_i = \ln\!\left(\frac{S_i}{S_{i-1}}\right),$$</p>
+    <p>and compute the sample standard deviation:</p>
+    <p>$$\hat\sigma^2 = \frac{1}{n-1}\sum_{i=1}^{n}\left(r_i - \bar r\right)^2 \cdot \frac{1}{\Delta t}.$$</p>
+
+    <p>The factor $1/\Delta t$ <strong>annualises</strong> the variance &mdash; if $\Delta t = 1/252$ (one trading day), multiply by $252$. The annualised standard deviation $\hat\sigma$ is what you'd quote.</p>
+
+    <div class="diagram-grid cols-2">
+        <div class="diagram-panel accent-border">
+            <h4>Moving window</h4>
+            <p>Re-estimate using only the last $n$ days: a rolling window. Long windows give a stable but slow estimate; short windows are reactive but noisy. Typical: $n = 30$ to $100$ days.</p>
+        </div>
+        <div class="diagram-panel g">
+            <h4>Exponential weighting</h4>
+            <p>Give the most recent return more weight: $w_i \propto \lambda^{n-i}$ with $\lambda \in (0,1)$. RiskMetrics famously uses $\lambda = 0.94$ for daily data &mdash; a half-life of about $11$ days.</p>
+        </div>
+    </div>
+
+    <p>Either way, historical vol tells you about the <em>past</em>. The implicit assumption is that the next $n$ days will look like the last $n$ &mdash; an assumption the market doesn't share, which is why historical and implied vols often disagree.</p>
+</section>
+
+<section class="slide" id="slide-03">
+    <div class="slide-number">03</div>
+    <h2>GARCH and EWMA &mdash; Volatility Clustering</h2>
+    <p>The data have an empirical regularity: <strong>large moves cluster together</strong>. A turbulent day is more likely than average to be followed by another turbulent day. A constant-$\sigma$ model can't reproduce this. Two simple time-series specifications can.</p>
+
+    <h3>EWMA</h3>
+    <p>The exponentially weighted moving average variance:</p>
+    <p>$$\hat\sigma_t^2 = \lambda\, \hat\sigma_{t-1}^2 + (1-\lambda)\, r_{t-1}^2.$$</p>
+    <p>One parameter $\lambda$. The recursion gives an updating rule rather than a window: each new return refines the estimate.</p>
+
+    <h3>GARCH(1,1)</h3>
+    <p>Generalised autoregressive conditional heteroscedasticity &mdash; Bollerslev (1986). One step richer:</p>
+    <p>$$\sigma_t^2 = \omega + \alpha\, r_{t-1}^2 + \beta\, \sigma_{t-1}^2.$$</p>
+
+    <p>Three parameters. There is a long-run variance $\omega / (1 - \alpha - \beta)$, an autoregressive part $\beta$ (variance persists) and a shock part $\alpha$ (recent returns matter). EWMA is the special case $\omega = 0$, $\alpha + \beta = 1$.</p>
+
+    <div class="callout">
+        <div class="callout-label">Why this matters for pricing</div>
+        <p>If $\sigma$ varies through time, the option price strictly depends on the <em>distribution</em> of $\sigma$ over $[t, T]$. GARCH suggests how to extrapolate $\sigma$ forward conditional on recent history &mdash; useful for option strategies whose payoff depends on the realised vol path (variance swaps, vol-targeting funds).</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-04">
+    <div class="slide-number">04</div>
+    <h2>Range-based Estimators</h2>
+    <p>Close-to-close returns throw away most of the day's information. Each day's <strong>high</strong> and <strong>low</strong> contain news the close doesn't. Two classical estimators exploit them.</p>
+
+    <div class="diagram-grid cols-2">
+        <div class="diagram-panel p">
+            <h4>Parkinson (1980)</h4>
+            <p>From the daily high $H$ and low $L$ only:</p>
+            <p>$$\hat\sigma^2_{\text{P}} = \frac{1}{4\ln 2}\left[\ln(H/L)\right]^2.$$</p>
+            <p>Variance over one day; multiply by $252$ to annualise. Roughly $5\times$ more efficient than close-to-close on a GBM.</p>
+        </div>
+        <div class="diagram-panel b">
+            <h4>Garman&ndash;Klass (1980)</h4>
+            <p>Uses open $O$, high $H$, low $L$, close $C$:</p>
+            <p>$$\hat\sigma^2_{\text{GK}} = \tfrac{1}{2}\!\left[\ln(H/L)\right]^2 - (2\ln 2 - 1)\!\left[\ln(C/O)\right]^2.$$</p>
+            <p>Even more efficient &mdash; about $7$ to $8\times$ close-to-close.</p>
+        </div>
+    </div>
+
+    <p>Both assume zero drift and continuous sampling. They become biased when the price has gaps (overnight news, opening jumps) or when trading is illiquid &mdash; cases where the printed high or low understates the true range.</p>
+</section>
+
+<section class="slide" id="slide-05">
+    <div class="slide-number">05</div>
+    <h2>Implied Volatility &mdash; Invert Black&ndash;Scholes</h2>
+    <p>Given a market call price $C^{\text{mkt}}$ at strike $K$ and maturity $T$, the implied volatility $\sigma_{\text{imp}}$ is the unique solution of</p>
+    <p>$$C_{\text{BS}}(S, K, T, r, \sigma_{\text{imp}}) = C^{\text{mkt}}.$$</p>
+
+    <p>There is no closed-form inverse. $C_{\text{BS}}(\sigma)$ is strictly increasing in $\sigma$, so bisection always works; Newton's method is faster:</p>
+    <p>$$\sigma_{n+1} = \sigma_n - \frac{C_{\text{BS}}(\sigma_n) - C^{\text{mkt}}}{\mathcal{V}(\sigma_n)},$$</p>
+    <p>where $\mathcal{V} = \partial C / \partial \sigma$ is the <strong>vega</strong>:</p>
+    <p>$$\mathcal{V} = S\sqrt{T}\, N'(d_1), \qquad d_1 = \frac{\ln(S/K) + (r + \tfrac{1}{2}\sigma^2)T}{\sigma\sqrt{T}}.$$</p>
+
+    <div class="callout">
+        <div class="callout-label">Watch out</div>
+        <p>Newton can fail if the initial guess is far from the root, or if the option is deeply in/out of the money &mdash; vega vanishes and the step blows up. A robust solver brackets the root with bisection first, then switches to Newton when the interval is small. Slide 10's solver does exactly this.</p>
+    </div>
+
+    <p>The market <strong>quotes options in implied vols</strong>, not prices. The Black&ndash;Scholes formula is treated as a price-to-vol converter &mdash; even by traders who don't believe its assumptions.</p>
+</section>
+
+<section class="slide" id="slide-06">
+    <div class="slide-number">06</div>
+    <h2>Skews and Smiles</h2>
+    <p>Plot implied vol against strike for fixed $T$. You don't get a flat line. You get a <strong>smile</strong> (FX, post-1987 indices) or a <strong>skew</strong> (equity indices: low strikes have higher implied vol).</p>
+
+    <div class="diagram-grid cols-3">
+        <div class="diagram-panel r">
+            <h4>Heavy tails</h4>
+            <p>Real returns have fatter tails than the lognormal. Out-of-the-money options are worth more than Black&ndash;Scholes says, so their implied vol is higher.</p>
+        </div>
+        <div class="diagram-panel p">
+            <h4>Jumps and crashes</h4>
+            <p>Post-1987, equity indices show a steep <em>skew</em>: low-strike puts trade at much higher implied vol &mdash; the market prices crash risk explicitly.</p>
+        </div>
+        <div class="diagram-panel b">
+            <h4>Supply and demand</h4>
+            <p>Demand for protective puts (hedgers) pushes their price up. Implied vol is partly the BS-invert of an inventory imbalance, not a forecast.</p>
+        </div>
+    </div>
+
+    <p>The <strong>implied-vol surface</strong> $\sigma_{\text{imp}}(K, T)$ is the two-dimensional version: implied vol as a function of strike and maturity. Its shape varies across markets and over time. Calibrating a model means choosing parameters so its implied-vol surface matches the market's.</p>
+
+    <div class="callout">
+        <div class="callout-label">A diagnostic, not a model</div>
+        <p>The smile is a <em>symptom</em> &mdash; it tells you that the constant-vol lognormal model is wrong. It does not itself tell you which richer model is right. That's why Wilmott devotes the rest of chapter 9 to model families.</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-07">
+    <div class="slide-number">07</div>
+    <h2>Deterministic Local Volatility &mdash; Dupire</h2>
+    <p>The simplest extension: keep one Brownian, let the volatility depend on the spot and time. Replace $\sigma$ with $\sigma(S,t)$:</p>
+    <p>$$dS = \mu S\, dt + \sigma(S, t)\, S\, dW.$$</p>
+
+    <p>If $\sigma(S,t)$ is a known function, the market is complete and Black&ndash;Scholes-style PDE pricing still works &mdash; with a non-constant diffusion coefficient. The big result, due to Dupire (1994), is that <em>there is a unique</em> $\sigma(K, T)$ <em>that exactly reproduces the market's call surface</em> $C(K,T)$:</p>
+
+    <p>$$\sigma^2_{\text{loc}}(K,T) = \frac{2\,\dfrac{\partial C}{\partial T} + 2(r-q)K\dfrac{\partial C}{\partial K} + 2qC}{K^2\,\dfrac{\partial^2 C}{\partial K^2}}.$$</p>
+
+    <p>So a perfect calibrating model exists, in closed form &mdash; if you can differentiate the call surface twice in $K$ and once in $T$. That "if" is fatal in practice: market quotes are sparse and noisy, and double differentiation amplifies the noise. Dupire is theoretically elegant and practically delicate.</p>
+
+    <div class="diagram-grid cols-2">
+        <div class="diagram-panel g">
+            <h4>Strengths</h4>
+            <ul>
+                <li>Calibrates exactly to vanilla prices.</li>
+                <li>One factor &mdash; complete market, unique hedge.</li>
+                <li>PDE pricing for exotics is straightforward.</li>
+            </ul>
+        </div>
+        <div class="diagram-panel r">
+            <h4>Weaknesses</h4>
+            <ul>
+                <li>Sensitive to interpolation of the call surface.</li>
+                <li>Implies dynamics for the smile that empirically aren't right &mdash; the smile flattens as spot moves, real smiles don't.</li>
+                <li>Forward smile is degenerate &mdash; bad for cliquets, forward-starts.</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<section class="slide" id="slide-08">
+    <div class="slide-number">08</div>
+    <h2>Stochastic Volatility</h2>
+    <p>Give volatility its own Brownian motion. The general spec:</p>
+    <p>$$dS = \mu S\, dt + \sigma S\, dW_1,$$</p>
+    <p>$$d\sigma = \alpha(S, \sigma, t)\, dt + \beta(S, \sigma, t)\, dW_2,$$</p>
+    <p>$$\mathrm{corr}(dW_1, dW_2) = \rho.$$</p>
+
+    <p>Now there are two sources of randomness and the market is <em>incomplete</em>: you can't hedge $S$ and $\sigma$ with $S$ alone. To price you need a <strong>market price of volatility risk</strong> $\lambda$ &mdash; an extra parameter the market itself has to imply.</p>
+
+    <h3>Heston (1993)</h3>
+    <p>Take the variance $v = \sigma^2$ to follow a mean-reverting square-root process:</p>
+    <p>$$dv = \kappa(\theta - v)\,dt + \xi\sqrt{v}\,dW_2.$$</p>
+    <p>Four parameters &mdash; $\kappa$ (mean reversion), $\theta$ (long-run variance), $\xi$ (vol-of-vol), $\rho$ (correlation) &mdash; plus the initial $v_0$. Famous because it admits a semi-closed-form via characteristic functions and Fourier inversion. Standard benchmark.</p>
+
+    <div class="diagram-grid cols-3">
+        <div class="diagram-panel p">
+            <h4>Hull&ndash;White (1987)</h4>
+            <p>Geometric Brownian variance &mdash; analytically tractable but no mean reversion.</p>
+        </div>
+        <div class="diagram-panel b">
+            <h4>SABR (2002)</h4>
+            <p>$dF = \sigma F^\beta\,dW_1$, $d\sigma = \nu\sigma\,dW_2$. Industry standard for swaption smiles.</p>
+        </div>
+        <div class="diagram-panel g">
+            <h4>Rough vol (2014+)</h4>
+            <p>Volatility driven by fractional Brownian motion with Hurst $H < 1/2$. Fits empirical roughness better than diffusions.</p>
+        </div>
+    </div>
+</section>
+
+<section class="slide" id="slide-09">
+    <div class="slide-number">09</div>
+    <h2>Uncertain Volatility</h2>
+    <p>An alternative philosophy &mdash; Avellaneda, Levy and Par&aacute;s (1995): don't try to specify a probability law for $\sigma$ at all. Just say it lives in a band,</p>
+    <p>$$\sigma_{\min} \le \sigma(t) \le \sigma_{\max},$$</p>
+    <p>and choose hedging parameters to bound the value of the portfolio in the worst case.</p>
+
+    <h3>The BSB equation</h3>
+    <p>The seller-side worst-case price satisfies a <strong>nonlinear PDE</strong> &mdash; the Black&ndash;Scholes&ndash;Barenblatt equation:</p>
+    <p>$$V_t + \tfrac{1}{2}\Sigma(V_{SS})^2 S^2 V_{SS} + rSV_S - rV = 0,$$</p>
+    <p>where $\Sigma(V_{SS}) = \sigma_{\max}$ if $V_{SS} > 0$ and $\sigma_{\min}$ if $V_{SS} < 0$. The "worst" $\sigma$ depends on the option's gamma at each $(S,t)$.</p>
+
+    <div class="diagram-grid cols-2">
+        <div class="diagram-panel accent-border">
+            <h4>Best case (buy-side)</h4>
+            <p>The lowest possible no-arbitrage price &mdash; you'd be over-paying if the seller offered less. Use $\sigma_{\max}$ where $V_{SS} < 0$, $\sigma_{\min}$ where $V_{SS} > 0$.</p>
+        </div>
+        <div class="diagram-panel r">
+            <h4>Worst case (sell-side)</h4>
+            <p>The highest possible no-arbitrage price &mdash; quote at least this and you can't be picked off. Swap the conditions above.</p>
+        </div>
+    </div>
+
+    <p>The result is a <em>bid&ndash;ask spread</em> generated entirely from model uncertainty. Nonlinearity also means portfolios <strong>do not</strong> price additively &mdash; a vertical spread costs less worst-case than the two legs separately. This is the deep payoff of the framework: it rewards hedged structures.</p>
+
+    <div class="callout">
+        <div class="callout-label">A philosophical shift</div>
+        <p>Probabilistic models say "here's the distribution of $\sigma$." Uncertain-vol says "I refuse to make that claim &mdash; here's the range I'm prepared to defend." The first gives a unique number with implicit certainty; the second gives an interval with explicit honesty.</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-10">
+    <div class="slide-number">10</div>
+    <h2>Interactive: Implied Volatility Smile Explorer</h2>
+    <p>A parametric quadratic smile in log-moneyness:</p>
+    <p>$$\sigma_{\text{imp}}(K) = \sigma_0 + a\,m + b\,m^2, \qquad m = \frac{\ln(K/S_0)}{\sqrt{T}}.$$</p>
+    <p>The left of the canvas plots $\sigma_{\text{imp}}$ against strike. The right plots the resulting Black&ndash;Scholes call prices &mdash; the smile creates an entire term structure of derivative prices from a few coefficients.</p>
+
+    <div class="canvas-wrap">
+        <canvas id="vol-canvas" width="780" height="320"></canvas>
+    </div>
+
+    <div class="control-panel">
+        <div class="control-row">
+            <label for="vs0-slider">$\sigma_0$ (ATM vol)</label>
+            <input type="range" id="vs0-slider" min="0.05" max="0.80" step="0.005" value="0.20">
+            <span class="val" id="vs0-val">0.200</span>
+        </div>
+        <div class="control-row">
+            <label for="va-slider">Skew $a$</label>
+            <input type="range" id="va-slider" min="-0.50" max="0.50" step="0.005" value="-0.10">
+            <span class="val" id="va-val">-0.100</span>
+        </div>
+        <div class="control-row">
+            <label for="vb-slider">Curvature $b$</label>
+            <input type="range" id="vb-slider" min="-0.50" max="2.00" step="0.01" value="0.40">
+            <span class="val" id="vb-val">0.400</span>
+        </div>
+        <div class="control-row">
+            <label for="vS-slider">Spot $S_0$</label>
+            <input type="range" id="vS-slider" min="50" max="200" step="1" value="100">
+            <span class="val" id="vS-val">100</span>
+        </div>
+        <div class="control-row">
+            <label for="vT-slider">Maturity $T$ (years)</label>
+            <input type="range" id="vT-slider" min="0.05" max="3" step="0.05" value="1.00">
+            <span class="val" id="vT-val">1.00</span>
+        </div>
+        <div class="control-row">
+            <label for="vr-slider">Rate $r$ (%)</label>
+            <input type="range" id="vr-slider" min="0" max="10" step="0.05" value="3.00">
+            <span class="val" id="vr-val">3.00%</span>
+        </div>
+        <div class="metric-grid">
+            <div class="metric"><div class="metric-label">ATM vol</div><div class="metric-value" id="vm-atm">&mdash;</div></div>
+            <div class="metric"><div class="metric-label">ATM call</div><div class="metric-value" id="vm-call">&mdash;</div></div>
+            <div class="metric"><div class="metric-label">Smile min</div><div class="metric-value" id="vm-min">&mdash;</div></div>
+            <div class="metric"><div class="metric-label">Smile max</div><div class="metric-value" id="vm-max">&mdash;</div></div>
+        </div>
+    </div>
+
+    <h3>Newton iteration demo</h3>
+    <p>Pick a target ATM call price; the solver finds the implied vol that reproduces it, iterating until $|C(\sigma) - C^{\text{tgt}}| < 10^{-6}$. Each row is one Newton step.</p>
+
+    <div class="control-panel">
+        <div class="control-row">
+            <label for="ntgt-slider">Target call price</label>
+            <input type="range" id="ntgt-slider" min="0.5" max="40" step="0.05" value="8">
+            <span class="val" id="ntgt-val">8.00</span>
+        </div>
+        <div class="control-row">
+            <label for="ng0-slider">Initial guess $\sigma_0$</label>
+            <input type="range" id="ng0-slider" min="0.05" max="1.50" step="0.005" value="0.30">
+            <span class="val" id="ng0-val">0.300</span>
+        </div>
+        <div class="control-row">
+            <button class="btn" id="ngo-btn">Run Newton</button>
+            <span class="val" id="ng-status" style="min-width:auto;">idle</span>
+        </div>
+        <div style="overflow-x:auto;">
+            <table id="newton-table">
+                <thead><tr><th>iter</th><th>$\sigma_n$</th><th>$C(\sigma_n)$</th><th>$C - C^{\text{tgt}}$</th><th>vega</th></tr></thead>
+                <tbody id="newton-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <p>Newton converges quadratically when started near the root; from far away it can wander, especially when vega is small. Try $\sigma_0 = 1.5$ for a deep OTM-style target &mdash; you'll see the step shrink and the iteration overshoot then correct.</p>
+</section>
+
+<footer class="footer">
+    <p>Deck 08 of the <a href="https://github.com/BrendanJamesLynskey/Wilmott_QF_Hub">Paul Wilmott Introduces Quantitative Finance &mdash; Companion Series</a>.</p>
+    <p style="margin-top: 0.6rem;">Companion to chapter 9 of <em>Paul Wilmott Introduces Quantitative Finance</em>, 2nd edition (Wiley, 2007).</p>
+</footer>
+
+<script>
+(function() {
+    const $ = id => document.getElementById(id);
+    // Error-function polynomial approximation (Abramowitz & Stegun 7.1.26)
+    function erf(x) {
+        const sign = x < 0 ? -1 : 1; x = Math.abs(x);
+        const a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911;
+        const t = 1/(1+p*x);
+        const y = 1 - (((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x);
+        return sign*y;
+    }
+    function N(x) { return 0.5*(1+erf(x/Math.SQRT2)); }
+    function nprime(x) { return Math.exp(-0.5*x*x)/Math.sqrt(2*Math.PI); }
+    function bsCall(S, K, T, r, sigma) {
+        if (sigma <= 0 || T <= 0) return Math.max(S - K*Math.exp(-r*T), 0);
+        const sT = sigma*Math.sqrt(T);
+        const d1 = (Math.log(S/K) + (r + 0.5*sigma*sigma)*T) / sT;
+        const d2 = d1 - sT;
+        return S*N(d1) - K*Math.exp(-r*T)*N(d2);
+    }
+    function bsVega(S, K, T, r, sigma) {
+        if (sigma <= 0 || T <= 0) return 0;
+        const sT = sigma*Math.sqrt(T);
+        const d1 = (Math.log(S/K) + (r + 0.5*sigma*sigma)*T) / sT;
+        return S*Math.sqrt(T)*nprime(d1);
+    }
+    function smile(K, S0, T, s0, a, b) {
+        const m = Math.log(K/S0)/Math.sqrt(Math.max(T,1e-6));
+        return Math.max(0.01, s0 + a*m + b*m*m);
+    }
+
+    // ---- Smile chart ----
+    const c = $('vol-canvas'), ctx = c.getContext('2d');
+    const sliders = ['vs0','va','vb','vS','vT','vr'];
+    const els = {};
+    sliders.forEach(s => { els[s] = $(s+'-slider'); els[s+'v'] = $(s+'-val'); });
+
+    function fmt(x, dp) { return x.toFixed(dp == null ? 3 : dp); }
+
+    function drawSmile() {
+        const s0 = +els.vs0.value, a = +els.va.value, b = +els.vb.value;
+        const S0 = +els.vS.value, T = +els.vT.value, r = +els.vr.value/100;
+        els.vs0v.textContent = fmt(s0);
+        els.vav.textContent = fmt(a);
+        els.vbv.textContent = fmt(b);
+        els.vSv.textContent = S0.toFixed(0);
+        els.vTv.textContent = fmt(T, 2);
+        els.vrv.textContent = (+els.vr.value).toFixed(2)+'%';
+
+        const W = c.width, H = c.height;
+        ctx.clearRect(0,0,W,H);
+
+        const Kmin = 0.4*S0, Kmax = 1.8*S0;
+        const Nk = 80;
+        let sMinV = +Infinity, sMaxV = -Infinity;
+        let cMin = +Infinity, cMax = -Infinity;
+        const pts = [];
+        for (let i=0;i<=Nk;i++) {
+            const K = Kmin + (Kmax-Kmin)*i/Nk;
+            const sv = smile(K,S0,T,s0,a,b);
+            const cv = bsCall(S0,K,T,r,sv);
+            pts.push({K,sv,cv});
+            if (sv<sMinV) sMinV=sv;
+            if (sv>sMaxV) sMaxV=sv;
+            if (cv<cMin) cMin=cv;
+            if (cv>cMax) cMax=cv;
+        }
+        sMinV = Math.max(0, sMinV-0.02); sMaxV += 0.02;
+        cMin = 0; cMax = Math.max(cMax*1.05, 1);
+
+        // Two panels: left smile, right call price
+        const padL=50, padR=20, padT=22, padB=42, gap=30;
+        const panelW = (W - padL - padR - gap)/2;
+        const plotH = H - padT - padB;
+
+        function panel(xOff, pts, getY, yMin, yMax, color, title, yLabel) {
+            // grid
+            ctx.strokeStyle = '#21262d'; ctx.lineWidth = 1;
+            for (let i=0;i<=5;i++) {
+                const x = xOff + i/5*panelW;
+                ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, padT+plotH); ctx.stroke();
+            }
+            for (let i=0;i<=4;i++) {
+                const y = padT + i/4*plotH;
+                ctx.beginPath(); ctx.moveTo(xOff, y); ctx.lineTo(xOff+panelW, y); ctx.stroke();
+            }
+            // axis line
+            ctx.strokeStyle = '#3a4252';
+            ctx.beginPath(); ctx.moveTo(xOff, padT+plotH); ctx.lineTo(xOff+panelW, padT+plotH); ctx.stroke();
+            // curve
+            ctx.strokeStyle = color; ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            pts.forEach((p,i) => {
+                const x = xOff + (p.K-Kmin)/(Kmax-Kmin)*panelW;
+                const y = padT + plotH - (getY(p)-yMin)/(yMax-yMin)*plotH;
+                if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+            });
+            ctx.stroke();
+            // spot line
+            const xs = xOff + (S0-Kmin)/(Kmax-Kmin)*panelW;
+            ctx.strokeStyle = '#fbbf24'; ctx.setLineDash([4,4]); ctx.lineWidth=1.2;
+            ctx.beginPath(); ctx.moveTo(xs, padT); ctx.lineTo(xs, padT+plotH); ctx.stroke();
+            ctx.setLineDash([]);
+            // title
+            ctx.fillStyle = color; ctx.font = '12px JetBrains Mono';
+            ctx.fillText(title, xOff+8, padT+12);
+            // x label
+            ctx.fillStyle = '#8b949e'; ctx.font = '11px JetBrains Mono';
+            ctx.fillText('K = '+Kmin.toFixed(0), xOff, H-padB+16);
+            ctx.fillText(Kmax.toFixed(0), xOff+panelW-26, H-padB+16);
+            ctx.fillText('strike K', xOff+panelW/2-22, H-padB+30);
+            // y label
+            ctx.save(); ctx.translate(xOff-32, padT+plotH/2+18); ctx.rotate(-Math.PI/2);
+            ctx.fillText(yLabel, 0, 0); ctx.restore();
+            // y ticks
+            ctx.fillStyle = '#8b949e'; ctx.font = '10px JetBrains Mono';
+            ctx.fillText(yMax.toFixed(2), xOff-padL+6, padT+10);
+            ctx.fillText(yMin.toFixed(2), xOff-padL+6, padT+plotH);
+        }
+
+        panel(padL, pts, p=>p.sv, sMinV, sMaxV, '#f472b6', 'implied vol σ(K)', 'σ');
+        panel(padL+panelW+gap, pts, p=>p.cv, cMin, cMax, '#34d399', 'call price C(K)', 'C');
+
+        // Metrics
+        const sATM = smile(S0,S0,T,s0,a,b);
+        $('vm-atm').textContent = fmt(sATM);
+        $('vm-call').textContent = bsCall(S0,S0,T,r,sATM).toFixed(2);
+        $('vm-min').textContent = fmt(sMinV);
+        $('vm-max').textContent = fmt(sMaxV);
+    }
+    sliders.forEach(s => els[s].addEventListener('input', drawSmile));
+    drawSmile();
+
+    // ---- Newton demo ----
+    const ngTgt = $('ntgt-slider'), ngTgtV = $('ntgt-val');
+    const ng0  = $('ng0-slider'),   ng0V   = $('ng0-val');
+    const ngBtn= $('ngo-btn'),      ngBody = $('newton-body'), ngStatus = $('ng-status');
+    function syncNg() {
+        ngTgtV.textContent = (+ngTgt.value).toFixed(2);
+        ng0V.textContent   = (+ng0.value).toFixed(3);
+    }
+    ngTgt.addEventListener('input', syncNg);
+    ng0.addEventListener('input', syncNg);
+    syncNg();
+
+    function runNewton() {
+        ngBody.innerHTML = '';
+        const S0 = +els.vS.value, T = +els.vT.value, r = +els.vr.value/100;
+        const K = S0; // ATM
+        const target = +ngTgt.value;
+        let sigma = +ng0.value;
+        const maxIter = 25, tol = 1e-6;
+        let converged = false;
+        for (let i=0;i<maxIter;i++) {
+            const c = bsCall(S0,K,T,r,sigma);
+            const v = bsVega(S0,K,T,r,sigma);
+            const err = c - target;
+            const tr = document.createElement('tr');
+            tr.innerHTML = '<td>'+i+'</td><td>'+sigma.toFixed(6)+'</td><td>'+c.toFixed(6)+
+                           '</td><td>'+err.toFixed(6)+'</td><td>'+v.toFixed(4)+'</td>';
+            ngBody.appendChild(tr);
+            if (Math.abs(err) < tol) { converged = true; break; }
+            if (v < 1e-8) { ngStatus.textContent = 'vega vanished — abort'; return; }
+            sigma = sigma - err/v;
+            if (sigma <= 0) sigma = 0.001;
+            if (sigma > 5) sigma = 5;
+        }
+        ngStatus.textContent = converged ? 'converged' : 'not converged in 25 iters';
+    }
+    ngBtn.addEventListener('click', runNewton);
+})();
+</script>
+</body>
+</html>
